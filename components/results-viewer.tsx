@@ -35,6 +35,8 @@ interface ResultsViewerProps {
 export function ResultsViewer({ results, originalImage, fileName, onNewAnalysis }: ResultsViewerProps) {
   const [sliderValue, setSliderValue] = useState([50])
   const [showExplainability, setShowExplainability] = useState(false)
+  const [brightness, setBrightness] = useState(100)
+  const [contrast, setContrast] = useState(100)
 
   const treatmentIcons = {
     Surgery: Scissors,
@@ -102,7 +104,10 @@ export function ResultsViewer({ results, originalImage, fileName, onNewAnalysis 
                       alt="Original Image"
                       width={400}
                       height={400}
-                      className="w-full h-80 object-cover"
+                      className="w-full h-64 object-cover"
+                      style={{
+                        filter: `brightness(${brightness}%) contrast(${contrast}%)`,
+                      }}
                     />
                     <div className="absolute top-2 left-2">
                       <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">Original</Badge>
@@ -114,7 +119,10 @@ export function ResultsViewer({ results, originalImage, fileName, onNewAnalysis 
                       alt="Segmented Image"
                       width={400}
                       height={400}
-                      className="w-full h-80 object-cover"
+                      className="w-full h-64 object-cover"
+                      style={{
+                        filter: `brightness(${brightness}%) contrast(${contrast}%)`,
+                      }}
                     />
                     <div className="absolute top-2 left-2">
                       <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30">Segmented</Badge>
@@ -128,6 +136,81 @@ export function ResultsViewer({ results, originalImage, fileName, onNewAnalysis 
                 {/* Slider Overlay */}
                 <div className="absolute inset-x-0 bottom-4 px-4">
                   <Slider value={sliderValue} onValueChange={setSliderValue} max={100} step={1} className="w-full" />
+                </div>
+              </div>
+
+              {/* Brightness and Contrast Controls */}
+              <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600 mb-4">
+                <h4 className="text-white font-medium mb-4 flex items-center">
+                  <Eye className="mr-2 h-4 w-4 text-blue-400" />
+                  Image Controls
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <label className="text-sm text-slate-300">Brightness</label>
+                      <span className="text-xs text-slate-400">{brightness}%</span>
+                    </div>
+                    <Slider
+                      value={[brightness]}
+                      onValueChange={(value) => setBrightness(value[0])}
+                      min={50}
+                      max={150}
+                      step={5}
+                      className="w-full"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <label className="text-sm text-slate-300">Contrast</label>
+                      <span className="text-xs text-slate-400">{contrast}%</span>
+                    </div>
+                    <Slider
+                      value={[contrast]}
+                      onValueChange={(value) => setContrast(value[0])}
+                      min={50}
+                      max={150}
+                      step={5}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-between mt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setBrightness(100)
+                      setContrast(100)
+                    }}
+                    className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                  >
+                    Reset
+                  </Button>
+                  <div className="flex space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setBrightness(120)
+                        setContrast(110)
+                      }}
+                      className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                    >
+                      Enhance
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setBrightness(80)
+                        setContrast(130)
+                      }}
+                      className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                    >
+                      High Contrast
+                    </Button>
+                  </div>
                 </div>
               </div>
 
