@@ -376,4 +376,5 @@ export function ResultsViewer({ results, originalImage, fileName, onNewAnalysis 
       </div>
     </div>
   )
+  // trial
 }
