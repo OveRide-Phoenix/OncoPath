@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OncoPath - Breast Cancer Detection</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        .glassmorphism {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        body {
+            background: #0b1728;
+            color: white;
+        }
+
+        .primary {
+            background-color: #fba1b7;
+            color: #0b1728;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 10;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: #112a40;
+            padding: 20px;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 800px;
+            text-align: center;
+            position: relative;
+        }
+
+        .close-btn {
+            color: white;
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .image-grid div {
+            text-align: center;
+        }
+
+        .image-grid img {
+            width: 100%;
+            max-height: 200px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .loading-bar {
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            overflow: hidden;
+            height: 10px;
+            margin-top: 5px;
+        }
+
+        .progress {
+            height: 100%;
+            background-color: #fba1b7;
+            width: 0;
+            transition: width 3s;
+        }
+
+        #uploadedImage {
+            max-width: 240px;
+            /* Ensures it doesn’t exceed the card width */
+            height: 240px;
+            /* Maintains the original aspect ratio */
+            border-radius: 10px;
+        }
+    </style>
+</head>
+
+<body class="font-sans">
+    <div class="container mx-auto p-8">
+        <header class="text-center mb-10">
+            <h1 class="text-5xl font-extrabold text-[#FBA1B7] drop-shadow-md">
+                OncoPath
+            </h1>
+            <p class="text-xl text-gray-400">AI-Powered Breast Cancer Detection</p>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <!-- Sidebar -->
+            <div class="glassmorphism p-6 bg-[#0D1B2A]">
+                <button id="uploadButton"
+                    class="w-full primary hover:bg-[#f78fa7] font-bold py-3 px-6 rounded-lg transition-all">
+                    UPLOAD IMAGE
+                </button>
+                <input type="file" id="imageInput" accept="image/*" class="hidden" />
+
+                <button id="detectTumorButton"
+                    class="w-full primary hover:bg-[#f78fa7] font-bold py-3 px-6 rounded-lg transition-all mt-4 hidden">
+                    DETECT TUMOUR
+                </button>
+
+                <!-- Loading Steps -->
+                <div class="mt-4 hidden" id="loadingSteps">
+                    <p id="step1">Step 1: Encoder ⏳ ... (Feature Extraction)</p>
+                    <div class="loading-bar">
+                        <div id="progress1" class="progress"></div>
+                    </div>
+                    <br />
+
+                    <p id="step2" class="opacity-50">
+                        Step 2: Bottleneck ⚙️ ... (Deep Processing)
+                    </p>
+                    <div class="loading-bar">
+                        <div id="progress2" class="progress"></div>
+                    </div>
+                    <br />
+
+                    <p id="step3" class="opacity-50">
+                        Step 3: Decoder 🔄 ... (Reconstruction)
+                    </p>
+                    <div class="loading-bar">
+                        <div id="progress3" class="progress"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="glassmorphism bg-[#112A40] hidden" id="uploadedImageCard">
+                    <h2 class="font-bold text-lg mb-2 underline">Uploaded Image</h2>
+                    <div class="flex justify-center">
+                        <img id="uploadedImage" class="max-w-full h-auto rounded-lg" />
+                    </div>
+                </div>
+                <div class="glassmorphism bg-[#112A40] hidden" id="segmentationCard">
+                    <h2 class="font-bold text-lg mb-2 underline">Segmentation Mask</h2>
+                    <img id="segmentationImage" class="w-full h-64 rounded-lg" />
+
+                    <!-- Dropdown to change colormap -->
+                    <div class="mt-2">
+                        <label for="colormapSelect" class="text-sm font-bold">Select Colormap:</label>
+                        <select id="colormapSelect" class="ml-2 bg-[#0D1B2A] text-white p-2 rounded">
+                            <option value="gray">Grayscale</option>
+                            <option value="inferno" selected>Inferno</option>
+                            <option value="nipy_spectral">Nipy Spectral</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="glassmorphism bg-[#112A40] hidden" id="cancerStageCard">
+                    <h2 class="font-bold text-lg mb-2 underline">
+                        Cancer Stage Prediction
+                    </h2>
+                    <p id="cancerStageResult" class="text-gray-300">
+                        No prediction available
+                    </p>
+                </div>
+                <div class="glassmorphism bg-[#112A40] hidden" id="biradsCard">
+                    <h2 class="font-bold text-lg mb-2 underline">BI-RADS Analysis</h2>
+                    <p id="biradsResult" class="text-gray-300">No analysis available</p>
+                </div>
+                <div class="glassmorphism text-center flex flex-col justify-center items-center bg-[#112A40] hidden"
+                    id="summaryCard">
+                    <h2 class="font-bold mb-4 underline">Diagnostic Summary</h2>
+                    <button id="downloadButton"
+                        class="primary hover:bg-[#f78fa7] font-bold py-2 px-4 rounded-lg transition-all">
+                        Download Summary
+                    </button>
+                </div>
+
+
+                <!-- Image Processing Pipeline -->
+                <div class="glassmorphism flex flex-col justify-center items-center bg-[#112A40] cursor-pointer hidden"
+                    id="pipelineCard">
+                    <h2 class="font-bold text-lg underline">Image Processing Pipeline</h2>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Image Processing Pipeline -->
+    <div id="pipelineModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" id="closeModal">&times;</span>
+            <h2 class="font-bold text-xl mb-4">Processing Pipeline</h2>
+            <div class="image-grid">
+                <div>
+                    <h3 class="font-semibold text-lg">Encoder</h3>
+                    <img id="encoderImage" />
+                </div>
+                <div>
+                    <h3 class="font-semibold text-lg">Bottleneck</h3>
+                    <img id="bottleneckImage" />
+                </div>
+                <div>
+                    <h3 class="font-semibold text-lg">Decoder</h3>
+                    <img id="decoderImage" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const uploadButton = document.getElementById("uploadButton");
+        const imageInput = document.getElementById("imageInput");
+
+        uploadButton.addEventListener("click", () => imageInput.click());
+
+        imageInput.addEventListener("change", function () {
+            const file = imageInput.files[0];
+            if (file) {
+                uploadedImageCard.classList.remove("hidden"); // Show uploaded image
+                document.getElementById("uploadedImage").src =
+                    URL.createObjectURL(file);
+                detectTumorButton.classList.remove("hidden"); // Show detect tumor button
+            }
+        });
+
+        document.getElementById("colormapSelect").addEventListener("change", function () {
+            updateSegmentationImage();
+        });
+
+        function updateSegmentationImage() {
+            const selectedColormap = document.getElementById("colormapSelect").value;
+            const formData = new FormData();
+            formData.append("file", imageInput.files[0]);
+            formData.append("colormap", selectedColormap); // Send colormap choice
+
+            fetch("http://127.0.0.1:5000/upload", {
+                method: "POST",
+                body: formData,
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        document.getElementById("segmentationImage").src = "data:image/png;base64," + data.segmentation_image;
+                    }
+                })
+                .catch(error => alert("An error occurred while updating the colormap."));
+        }
+
+        imageInput.addEventListener("change", function () {
+            const file = imageInput.files[0];
+            if (file) {
+                uploadedImageCard.classList.remove("hidden");
+                document.getElementById("uploadedImage").src = URL.createObjectURL(file);
+                detectTumorButton.classList.remove("hidden"); // Ensure detect button is always available
+            }
+        });
+
+
+        detectTumorButton.addEventListener("click", function () {
+            detectTumorButton.classList.add("hidden"); // Hide detect tumor button
+            document.getElementById("loadingSteps").classList.remove("hidden"); // Show loading bars
+
+            const formData = new FormData();
+            formData.append("file", imageInput.files[0]);
+
+            fetch("http://127.0.0.1:5000/upload", {
+                method: "POST",
+                body: formData,
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        document.getElementById("progress1").style.width = "100%";
+                        document.getElementById("step1").innerHTML =
+                            "Step 1: Encoder ✅ (Feature Extraction)";
+
+                        setTimeout(() => {
+                            document.getElementById("progress2").style.width = "100%";
+                            document.getElementById("step2").classList.remove("opacity-50");
+                            document.getElementById("step2").innerHTML =
+                                "Step 2: Bottleneck ✅ (Deep Processing)";
+                        }, 800);
+
+                        setTimeout(() => {
+                            document.getElementById("progress3").style.width = "100%";
+                            document.getElementById("step3").classList.remove("opacity-50");
+                            document.getElementById("step3").innerHTML =
+                                "Step 3: Decoder ✅ (Reconstruction)";
+
+                            setTimeout(() => {
+                                // Show all results after processing is done
+                                document
+                                    .querySelectorAll(".glassmorphism.hidden")
+                                    .forEach((card) => card.classList.remove("hidden"));
+
+                                document.getElementById("segmentationImage").src =
+                                    "data:image/png;base64," + data.segmentation_image;
+
+
+                                document.getElementById("encoderImage").src =
+                                    "data:image/png;base64," + data.intermediate_images.encoder;
+                                document.getElementById("bottleneckImage").src =
+                                    "data:image/png;base64," +
+                                    data.intermediate_images.bottleneck;
+                                document.getElementById("decoderImage").src =
+                                    "data:image/png;base64," + data.intermediate_images.decoder;
+
+                                const tumor = data.tumor_details[0];
+                                document.getElementById("cancerStageResult").textContent =
+                                    tumor["Cancer Stage"];
+                                document.getElementById("biradsResult").innerHTML = `
+                        <p><strong>BI-RADS:</strong> ${tumor["BI-RADS"]} </p>
+                        <p><strong>Size:</strong> ${tumor["Size (mm²)"]} mm²</p>
+                        <p><strong>Shape:</strong> ${tumor["Shape"]}</p>
+                        <p><strong>Margin:</strong> ${tumor["Margin"]}</p>`;
+
+                                document
+                                    .getElementById("pipelineCard")
+                                    .classList.remove("hidden");
+                            }, 1000);
+                        }, 1600);
+                    }
+                })
+                .catch((error) =>
+                    alert("An error occurred while processing the image.")
+                );
+        });
+
+        document
+            .getElementById("pipelineCard")
+            .addEventListener(
+                "click",
+                () =>
+                    (document.getElementById("pipelineModal").style.display = "flex")
+            );
+        document
+            .getElementById("closeModal")
+            .addEventListener(
+                "click",
+                () =>
+                    (document.getElementById("pipelineModal").style.display = "none")
+            );
+            document.getElementById("downloadButton").addEventListener("click", async function () {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF("p", "mm", "a4"); // A4 size PDF
+
+    // Select the content to capture (all the result cards)
+    const contentToCapture = document.querySelector(".col-span-3");
+
+    if (!contentToCapture) {
+        alert("Error: No data available for the report.");
+        return;
+    }
+
+    // Hide unnecessary elements
+    const summaryCard = document.getElementById("summaryCard");
+    const pipelineCard = document.getElementById("pipelineCard");
+    if (summaryCard) summaryCard.style.display = "none";
+    if (pipelineCard) pipelineCard.style.display = "none";
+
+    html2canvas(contentToCapture, { useCORS: true, scale: 2 }).then(canvas => {
+        const imgData = canvas.toDataURL("image/png");
+        const imgWidth = 190;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+        // Restore hidden elements
+        if (summaryCard) summaryCard.style.display = "";
+        if (pipelineCard) pipelineCard.style.display = "";
+
+        // Add main image section to PDF
+        doc.addImage(imgData, "PNG", 10, 10, imgWidth, imgHeight);
+
+        // ✅ **Ensure BI-RADS Score is retrieved properly**
+        const biradsElement = document.getElementById("biradsResult");
+        console.log(biradsElement);
+        const cancerStageElement = document.getElementById("cancerStageResult");
+
+        let biradsScore = biradsElement ? biradsElement.querySelector("p strong")?.nextSibling?.nodeValue.trim() : "";
+        console.log(biradsScore);
+        let cancerStage = cancerStageElement ? cancerStageElement.textContent.trim() : "";
+
+        // ✅ **If BI-RADS is empty, fallback to 'Not Provided' instead of 'Unknown'**
+        if (!biradsScore || biradsScore.toLowerCase() === "unknown") {
+            biradsScore = "Not Provided";
+        }
+
+        // ✅ **If Cancer Stage is empty, default to 'Not Provided'**
+        if (!cancerStage || cancerStage.toLowerCase() === "unknown") {
+            cancerStage = "Not Provided";
+        }
+
+        // ✅ **Retrieve treatment suggestions properly**
+        const treatmentSuggestions = getTreatmentSuggestions(biradsScore, cancerStage);
+
+        doc.addPage(); // Add new page for treatment details
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(14);
+        doc.text("Suggested Treatment Plan", 10, 20);
+
+        doc.setFont("helvetica", "");
+        doc.setFontSize(12);
+        doc.text(`BI-RADS Score: ${biradsScore}`, 10, 30);
+        doc.text(`Cancer Stage: ${cancerStage}`, 10, 40);
+
+        doc.setFontSize(11);
+        doc.text(treatmentSuggestions, 10, 50, { maxWidth: 180 });
+
+        doc.save("breast_cancer_report.pdf");
+    });
+});
+
+// **Updated Function to Handle Missing BI-RADS Scores**
+function getTreatmentSuggestions(birads, stage) {
+    const biradsMapping = {
+        "Category 1": "Routine screening advised, no immediate concern.",
+        "Category 2": "Routine screening, benign findings detected.",
+        "Category 3": "Short-term follow-up imaging in 6 months recommended.",
+        "Category 4": "Biopsy recommended due to suspicious findings.",
+        "Category 5": "High probability of malignancy; biopsy required.",
+        "Category 6": "Confirmed malignancy; treatment should begin immediately.",
+        "Not Provided": "Further imaging or clinical evaluation required."
+    };
+
+    const stageTreatment = {
+        "Stage 0": "Active monitoring or minor surgery for non-invasive tumors.",
+        "Stage I": "Surgery (Lumpectomy/Mastectomy) and Radiation therapy.",
+        "Stage II": "Surgery, Chemotherapy, and Radiation therapy.",
+        "Stage III": "Aggressive Chemotherapy, Surgery, and Targeted Therapy.",
+        "Stage IV": "Palliative care, Hormone Therapy, Targeted Therapy, or Chemotherapy.",
+        "Not Provided": "Consult oncologist for detailed assessment."
+    };
+
+    const biradsSuggestion = biradsMapping[birads] || biradsMapping["Not Provided"];
+    const stageSuggestion = stageTreatment[stage] || stageTreatment["Not Provided"];
+
+    return `Based on the BI-RADS score, the recommendation is: ${biradsSuggestion}\n\n` +
+           `Based on the cancer stage, the recommended treatment is: ${stageSuggestion}`;
+}
+    </script>
+
+</body>
+
+</html>
