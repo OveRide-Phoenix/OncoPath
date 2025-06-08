@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useDropzone } from "react-dropzone";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -209,7 +209,11 @@ export default function OncoPathApp() {
         }
     };
 
+    const fullPageRef = useRef<HTMLDivElement>(null)
+
+    
     return (
+        <div ref={fullPageRef}>
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
             <Navigation onReset={resetApp} currentState={appState} />
 
@@ -491,9 +495,11 @@ export default function OncoPathApp() {
                     originalImage={uploadedFile.preview}
                     fileName={uploadedFile.file.name}
                     onNewAnalysis={resetApp}
+                    pageRef={fullPageRef}
                   />
                 )}
             </div>
+        </div>
         </div>
     );
 }

@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress"
 import { Slider } from "@/components/ui/slider"
 import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import html2canvas from "html2canvas"
 import {
   Eye,
   Download,
@@ -92,9 +93,10 @@ interface ResultsViewerProps {
   originalImage: string
   fileName: string
   onNewAnalysis: () => void
+  pageRef: React.RefObject<HTMLDivElement>
 }
 
-export function ResultsViewer({ results: initialResults, originalImage, fileName, onNewAnalysis }: ResultsViewerProps) {
+export function ResultsViewer({ results: initialResults, originalImage, fileName, onNewAnalysis, pageRef }: ResultsViewerProps) {
   // Create a structured version of the results with dummy data for missing fields
   const stageDescriptions: Record<string, string> = {
     "Stage 0": "Stage 0 breast cancer (DCIS) means the cancer cells are confined to the ducts and haven’t spread into surrounding tissue. It's highly treatable and usually requires localized treatment.",
@@ -200,10 +202,24 @@ export function ResultsViewer({ results: initialResults, originalImage, fileName
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
-          <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-800">
-            <Download className="mr-2 h-4 w-4" />
-            Export Report
-          </Button>
+        <Button
+  variant="outline"
+  className="border-slate-600 text-slate-300 hover:bg-slate-800"
+  onClick={async () => {
+    if (!pageRef?.current) return
+
+    const canvas = await html2canvas(pageRef.current)
+    const dataUrl = canvas.toDataURL("image/png")
+    const link = document.createElement("a")
+    link.href = dataUrl
+    link.download = "oncopath-dashboard.png"
+    link.click()
+  }}
+>
+  <Download className="mr-2 h-4 w-4" />
+  Export Report
+</Button>
+
           <Button
             onClick={onNewAnalysis}
             className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
