@@ -225,8 +225,8 @@ export default function OncoPathApp() {
     <Image
       src="/vector_oncopath_logo.png"
       alt="OncoPath Logo"
-      width={32}
-      height={32}
+      width={48}
+      height={48}
       className="mr-2"
     />
     <h1 className="text-3xl font-bold text-white">OncoPath</h1>

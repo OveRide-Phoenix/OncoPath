@@ -40,8 +40,8 @@ export function Navigation({ onReset, currentState }: NavigationProps) {
                 src="/vector_oncopath_logo.png"
                 alt="Logo"
                 className="cursor-pointer"
-                width={30}
-                height={30}
+                width={48}
+                height={48}
                 onClick={() => {
                   if (window.location.pathname === "/") {
                     window.location.reload()
