@@ -182,7 +182,7 @@ export function ResultsViewer({ results: initialResults, originalImage, fileName
           src={`${base64}`}
           alt={`Segmented Image (${colormap})`}
           fill
-          className="object-contain"
+          className="object-cover"
           style={{
             filter: `brightness(${brightness}%) contrast(${contrast}%)`,
           }}
@@ -258,7 +258,7 @@ export function ResultsViewer({ results: initialResults, originalImage, fileName
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="relative bg-slate-900 rounded-lg overflow-hidden">
+              <div className="relative bg-slate-900 rounded-lg">
                 <div className="flex">
                   <div className="w-1/2 relative">
                     <div className="h-72 md:h-80">
@@ -266,13 +266,13 @@ export function ResultsViewer({ results: initialResults, originalImage, fileName
                         src={originalImage || "/placeholder.svg"}
                         alt="Original Image"
                         fill
-                        className="object-contain"
+                        className="object-cover"
                         style={{
                           filter: `brightness(${brightness}%) contrast(${contrast}%)`,
                         }}
                       />
                     </div>
-                    <div className="absolute top-2 left-2">
+                    <div className="absolute top-2 left-2 z-10">
                       <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">Original</Badge>
                     </div>
                   </div>
@@ -280,7 +280,7 @@ export function ResultsViewer({ results: initialResults, originalImage, fileName
                     <div className="h-72 md:h-80">
                     {renderSegmentedImage(selectedColormap)}
                     </div>
-                    <div className="absolute top-2 left-2">
+                    <div className="absolute top-2 left-2 z-10">
                       <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30">Segmented</Badge>
                     </div>
                     {showExplainability && (
